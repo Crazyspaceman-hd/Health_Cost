@@ -1,0 +1,144 @@
+# =====================================================================
+# Synthetic Health Cost Growth Target Analytics — configuration
+# ---------------------------------------------------------------------
+# Every "magic number" used by the synthetic data generator lives here so
+# the dataset is reproducible and the seeded economic story is auditable.
+# Nothing in this project uses real PHI or real claims data.
+# =====================================================================
+
+random_seed: 20260623
+
+# ---------------------------------------------------------------------
+# Validation engine thresholds (Phase 2). Tunable so the data-quality
+# rules can be calibrated without touching code.
+# ---------------------------------------------------------------------
+validation:
+  yoy_volume_drop_threshold: 0.30      # flag payer-year claim/MM drops beyond this
+  yoy_volume_spike_threshold: 0.45     # flag implausible payer-year spikes
+  completeness_ratio_threshold: 0.50   # cell claims/MM below this x its norm is "missing"
+  min_member_months_for_completeness: 500  # ignore tiny cells for completeness
+  high_cost_review_multiple: 1.0       # high-cost flag = this x truncation_threshold
+
+# Measurement years. Needs >= 3 so we can compute YoY growth across >= 2
+# year-over-year transitions (2021->2022, 2022->2023).
+years: [2021, 2022, 2023]
+
+# Approximate distinct members in the panel. Member months are generated
+# per enrolled month, so total claim/enrollment rows are much larger.
+n_members: 12000
+
+# ---------------------------------------------------------------------
+# The cost growth benchmark the program measures performance against.
+# 3.4% mirrors the kind of per-capita target a state cost-growth program
+# sets. Payers/providers/LOBs above this are flagged in the analysis.
+# ---------------------------------------------------------------------
+target_growth_rate: 0.034
+
+# High-cost-claimant truncation threshold. Allowed amounts above this are
+# capped/excluded when measuring underlying cost trend, so a few catastrophic
+# claims don't dominate year-over-year PMPM. A standard cost-growth practice.
+truncation_threshold: 50000.0
+
+# ---------------------------------------------------------------------
+# Payers (>= 3 required). base_pmpm is the 2021 starting per-member-per-
+# month allowed cost; annual_trend is the geometric YoY growth seeded for
+# that payer. At least one payer is deliberately seeded ABOVE target so
+# the report has real "exceeded the benchmark" content.
+# ---------------------------------------------------------------------
+payers:
+  # Seeded growth story (vs the 3.4% target):
+  #   PAY001 — clearly ABOVE target (primary cost-growth concern)
+  #   PAY002 — the data-quality payer: its 2023 submission is incomplete
+  #            (see defects.incomplete_submission), so its trend is NOT a clean
+  #            signal — it exists to exercise the validation engine.
+  #   PAY003 — clearly BELOW target (well-managed Medicaid plan)
+  #   PAY004 — clearly ABOVE target (Medicare Advantage)
+  - {payer_id: "PAY001", payer_name: "Granite State Health Plan", payer_type: "Commercial", base_pmpm: 480.0, annual_trend: 0.055}
+  - {payer_id: "PAY002", payer_name: "Bay State Mutual",          payer_type: "Commercial", base_pmpm: 455.0, annual_trend: 0.030}
+  - {payer_id: "PAY003", payer_name: "North Country Care",        payer_type: "Medicaid",   base_pmpm: 410.0, annual_trend: 0.008}
+  - {payer_id: "PAY004", payer_name: "Evergreen Advantage",       payer_type: "Medicare",   base_pmpm: 690.0, annual_trend: 0.050}
+
+# Provider organizations (>= 4). org_trend_adj is an additive nudge to the
+# growth rate so one or two orgs land above target regardless of payer.
+provider_orgs:
+  - {provider_org_id: "ORG01", provider_org_name: "Riverbend Health System", region: "Capital",   org_type: "Hospital System", org_trend_adj:  0.024}
+  - {provider_org_id: "ORG02", provider_org_name: "Lakeside Medical Group",  region: "Lakes",     org_type: "Multispecialty IPA", org_trend_adj:  0.008}
+  - {provider_org_id: "ORG03", provider_org_name: "Summit Community Care",   region: "Mountains", org_type: "FQHC Network", org_trend_adj: -0.016}
+  - {provider_org_id: "ORG04", provider_org_name: "Harbor Physicians",       region: "Seacoast",  org_type: "Multispecialty IPA", org_trend_adj:  0.006}
+  - {provider_org_id: "ORG05", provider_org_name: "Valley Integrated Health", region: "Valley",   org_type: "Hospital System", org_trend_adj:  0.012}
+  - {provider_org_id: "ORG06", provider_org_name: "Meadowbrook Partners",    region: "Lakes",     org_type: "FQHC Network", org_trend_adj: -0.008}
+
+lines_of_business: ["Medicaid", "Medicare Advantage", "Commercial"]
+
+age_bands: ["0-17", "18-34", "35-49", "50-64", "65+"]
+
+# ---------------------------------------------------------------------
+# Service category mix. share = fraction of CLAIM VOLUME; mean_allowed =
+# average allowed $ per claim; extra_trend = category-specific cost trend
+# layered on top of the payer trend. Pharmacy and behavioral health are
+# seeded with above-average trend so they show up as cost drivers.
+# util_per_1k_tracked flags categories reported as utilization/1,000.
+# ---------------------------------------------------------------------
+service_categories:
+  - {service_category: "Inpatient",          category_group: "Facility",     share: 0.07,  mean_allowed: 4500.0, extra_trend: 0.005, util_per_1k_tracked: true}
+  - {service_category: "Outpatient",         category_group: "Facility",     share: 0.17,  mean_allowed: 950.0,  extra_trend: 0.006, util_per_1k_tracked: true}
+  - {service_category: "Emergency Department", category_group: "Facility",   share: 0.055, mean_allowed: 1300.0, extra_trend: 0.010, util_per_1k_tracked: true}
+  - {service_category: "Pharmacy",           category_group: "Pharmacy",     share: 0.30,  mean_allowed: 230.0,  extra_trend: 0.050, util_per_1k_tracked: true}
+  - {service_category: "Primary Care",       category_group: "Professional", share: 0.155, mean_allowed: 170.0,  extra_trend: 0.004, util_per_1k_tracked: true}
+  - {service_category: "Behavioral Health",  category_group: "Professional", share: 0.065, mean_allowed: 250.0,  extra_trend: 0.055, util_per_1k_tracked: true}
+  - {service_category: "Specialist",         category_group: "Professional", share: 0.12,  mean_allowed: 380.0,  extra_trend: 0.009, util_per_1k_tracked: true}
+  - {service_category: "Lab/Imaging",        category_group: "Ancillary",    share: 0.065, mean_allowed: 420.0,  extra_trend: 0.007, util_per_1k_tracked: true}
+
+# Broad, synthetic condition groups only — never a real diagnosis code.
+condition_groups:
+  - "Cardiometabolic"
+  - "Behavioral Health"
+  - "Musculoskeletal"
+  - "Respiratory"
+  - "Maternity"
+  - "Oncology"
+  - "Preventive/Wellness"
+  - "Other/Unclassified"
+
+# Member cost share as a fraction of allowed, by line of business (rough).
+cost_share_rate:
+  Medicaid: 0.01
+  Medicare Advantage: 0.08
+  Commercial: 0.18
+
+# High-cost claimant seeding: a small fraction of members get a large
+# "catastrophic" claim, to support high-cost concentration analysis.
+high_cost:
+  member_fraction: 0.02        # ~2% of members are high-cost claimants
+  # Catastrophic claims sit clearly above the analytic truncation threshold
+  # ($50k, see config below) so high-cost truncation removes them cleanly when
+  # measuring underlying trend, while they still drive spend concentration.
+  catastrophic_allowed_min: 75000.0
+  catastrophic_allowed_max: 200000.0
+  # Tertiary/specialty facility: a share of high-cost members is concentrated at
+  # one provider org (a referral hospital system), so that facility carries a
+  # disproportionately sick panel. This models real case-mix concentration —
+  # the facility's raw PMPM looks high for reasons that are NOT inefficiency,
+  # motivating risk adjustment. Set specialty_share to 0 to disable.
+  specialty_org_id: "ORG01"    # Riverbend Health System (Hospital System)
+  specialty_share: 0.45        # ~45% of high-cost members attributed here
+
+# ---------------------------------------------------------------------
+# Deliberately injected data-quality defects so the Phase 2 validation
+# engine has real issues to find. Each rate is a fraction of claim rows
+# unless noted. Set any to 0 to produce a clean dataset.
+# ---------------------------------------------------------------------
+defects:
+  duplicate_claim_rate: 0.004        # exact-duplicate claim_id rows
+  negative_amount_rate: 0.002        # negative allowed/paid amounts
+  paid_gt_allowed_rate: 0.003        # paid_amount > allowed_amount
+  missing_service_cat_rate: 0.0025   # null service_category
+  orphan_claim_rate: 0.0015          # claims for members never enrolled
+  missing_provider_rate: 0.002       # null provider_org_id
+  invalid_date_rate: 0.001           # service_date outside measurement window
+  # Structural defects (whole-segment, not per-row):
+  incomplete_submission:             # one payer/year with a big volume drop
+    payer_id: "PAY002"
+    year: 2023
+    keep_fraction: 0.55              # only ~55% of expected claims submitted
+  enrollment_gap_fraction: 0.04      # ~4% of members get a mid-year gap

@@ -15,6 +15,32 @@ automation, and stakeholder-ready summaries.
 > are broad synthetic buckets, never real diagnosis codes. This project makes
 > **no claim of government or program experience** — it is a simulation.
 
+## Example outputs
+
+<p align="center">
+  <img src="docs/growth_vs_target.png" width="32%" alt="YoY cost growth vs 3.4% target" />
+  <img src="docs/price_vs_utilization.png" width="32%" alt="Price vs utilization decomposition" />
+  <img src="docs/high_cost_by_facility.png" width="32%" alt="High-cost member concentration by facility" />
+</p>
+
+*Left:* Year-over-year cost growth against the program target (lower is better).
+*Center:* Pharmacy and behavioral health growth is price-driven, not utilization.
+*Right:* Riverbend holds 49% of high-cost members at 2.7× its panel share — a case-mix concentration that motivates risk adjustment.
+
+## Skills demonstrated
+
+- Claims and enrollment analytics (member-month grain, PMPM, YoY trend)
+- Data validation and quality assurance (13-rule engine with severity and resolution tracking)
+- Cost-growth benchmarking against a per-capita target
+- High-cost truncation methodology for trend measurement
+- Price vs. utilization decomposition (PMPM = volume × unit cost)
+- Provider growth profiling (broad-based vs. concentrated)
+- Case-mix / high-cost concentration analysis (risk-adjustment motivation)
+- SQL analytics alongside pandas (cross-checked for agreement)
+- Automated reporting and stakeholder-ready summaries
+- Interactive dashboarding (Streamlit)
+- Reproducible pipelines with 77 automated tests
+
 ## Why synthetic data?
 
 Real health-claims data is protected (PHI/HIPAA) and cannot be used in a public
